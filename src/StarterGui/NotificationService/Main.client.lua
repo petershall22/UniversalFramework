@@ -2,7 +2,7 @@ local UniversalFramework = game:GetService("ReplicatedStorage"):WaitForChild("Un
 local TweenService = game:GetService("TweenService")
 local Knit = require(UniversalFramework.Utility.KnitFramework.Knit)
 local Utils = require(UniversalFramework.Utility.FrameworkUtils)
-local Types = require(UniversalFramework.Configuration.NotificationService.Types)
+local Types = require(UniversalFramework.Configuration.NotificationSystem.Types)
 
 local notificationService = Knit.GetService("NotificationService")
 local gui = script.Parent.MainFrame
@@ -25,10 +25,8 @@ notificationService.CreateNotification:Connect(function(status, title, message)
 	clone.Body.Position = startPos
 	clone.Body.StatusImage.ImageColor3 = types[status]["Color"]
 	clone.Body.Status.BackgroundColor3 = types[status]["Color"]
-	clone.Body.Status.Misc.BackgroundColor3 = types[status]["Color"]
 	clone.Body.StatusImage.Image = types[status]["Image"]
 	clone.Notification.SoundId = types[status]["Sound"]
-	clone.Body.Status.Status.Text = title
 	clone.Body.Body.Text = message
 	clone.Visible = true
 	clone.Parent = gui

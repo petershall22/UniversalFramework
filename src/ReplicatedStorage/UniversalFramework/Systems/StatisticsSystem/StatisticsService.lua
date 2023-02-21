@@ -5,6 +5,7 @@ local Utils = require(UniversalFramework.Utility.FrameworkUtils)
 local statisticsService = Knit.CreateService {
 	Name = "Statistics",
 }
+local notificationService;
 
 local Players = game:GetService("Players")
 local DatastoreService = game:GetService("DataStoreService")
@@ -44,6 +45,7 @@ local function playerInit(player)
 	playersInfo[player.Name]["Tokens"] = x["Tokens"]
 	playersInfo[player.Name]["Credits"] = x["Credits"]
 	playersInfo[player.Name]["RunSpeed"] = setting.Stamina:GetAttribute("DefaultRunSpeed")
+	print(playersInfo)
 	statisticsStore:SetAsync(player.Name, x)
 end
 
@@ -52,7 +54,12 @@ local function tokenHandler(player)
 	while true do
 		local success, response = pcall(function()
 			Utils.Hold(setting:GetAttribute("TokenInterval"))
-			playersInfo[player.Name]["Tokens"] += setting:GetAttribute("TokenAmountGiven")
+			local increment = setting:GetAttribute("TokenAmountGiven")
+			local original = playersInfo[player.Name]["Tokens"]
+			local amount = (playersInfo[player.Name]["Tokens"] + increment)
+			local message = string.format("You have earned <b>%s tokens</b>, bringing your total to <b><u>%s</u></b>.", increment, amount)
+			notificationService:Notify(player, "Tokens", "Tokens added", message)
+			playersInfo[player.Name]["Tokens"] = amount
 		end)
 		if not success then
 			print(response)
@@ -106,6 +113,7 @@ function statisticsService:KnitInit()
 end
 
 function statisticsService:KnitStart()
+	notificationService = Knit.GetService("NotificationService")
 end
 
 

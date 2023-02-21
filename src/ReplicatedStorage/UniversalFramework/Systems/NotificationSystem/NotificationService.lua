@@ -1,8 +1,6 @@
 local UniversalFramework = game:GetService("ReplicatedStorage"):WaitForChild("UniversalFramework")
 local Knit = require(UniversalFramework.Utility.KnitFramework.Knit)
-local Utils = require(UniversalFramework.Utility.FrameworkUtils)
-local Systems = UniversalFramework.Systems
-local Types = require(Systems.NotificationSystem.Types)
+local Types = require(UniversalFramework.Configuration.NotificationSystem.Types)
 
 local notificationService = Knit.CreateService {
 	Name = "NotificationService",
@@ -11,13 +9,25 @@ local notificationService = Knit.CreateService {
 	}
 }
 
-function notificationService:Notify(player, status, message)
+function notificationService:Notify(player, status, title, message)
 	local types = Types.returnTypes()
 	if types[status] then
-		self.CreateNotification:Fire(player, status, message)
+		self.Client.CreateNotification:Fire(player, status, title, message)
 		return true
 	else
 		error("Status not found, aborting.")
+	end
+end
+
+function notificationService:NotifyAll(status, title, message)
+	local types = Types.returnTypes()
+	for i, player in game:GetService("Players"):GetPlayers() do
+		if types[status] then
+			self.Client.CreateNotification:Fire(player, status, title, message)
+			return true
+		else
+			error("Status not found, aborting.")
+		end
 	end
 end
 
