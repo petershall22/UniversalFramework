@@ -13,7 +13,7 @@ local startPosX = 1.2
 local holdingTime = 5
 --
 
-notificationService.CreateNotification:Connect(function(status, title, message)
+notificationService.CreateNotification:Connect(function(status, message)
 	local posY = gui.Notif.Body.Position.Y.Scale
 	local endPosX = gui.Notif.Body.Position.X.Scale
 	local startPos = UDim2.new(startPosX, 0, posY, 0)

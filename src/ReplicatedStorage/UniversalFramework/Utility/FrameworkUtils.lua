@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 local Utils = {}
 
 local RunService = game:GetService("RunService")

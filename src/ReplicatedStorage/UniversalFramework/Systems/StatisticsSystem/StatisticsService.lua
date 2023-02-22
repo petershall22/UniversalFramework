@@ -58,7 +58,7 @@ local function tokenHandler(player)
 			local original = playersInfo[player.Name]["Tokens"]
 			local amount = (playersInfo[player.Name]["Tokens"] + increment)
 			local message = string.format("You have earned <b>%s tokens</b>, bringing your total to <b><u>%s</u></b>.", increment, amount)
-			notificationService:Notify(player, "Tokens", "Tokens added", message)
+			notificationService:Notify(player, "Tokens", message)
 			playersInfo[player.Name]["Tokens"] = amount
 		end)
 		if not success then
