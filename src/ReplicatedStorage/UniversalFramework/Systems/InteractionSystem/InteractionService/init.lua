@@ -3,6 +3,7 @@ local PromptService = game:GetService("ProximityPromptService")
 local Knit = require(UniversalFramework.Utility.KnitFramework.Knit)
 local Utils = require(UniversalFramework.Utility.FrameworkUtils)
 local Systems = UniversalFramework.Systems
+local debounceTime = 0.8
 
 local Doors = {}
 
@@ -39,6 +40,7 @@ local function initialiseDoors()
 				Doors[v]["Owner"] = ""
 				Doors[v]["Permissions"] = {} -- TODO: Inside table is ["PlayerName"] = { ["Open"] = true, ["Lock"] = false }
 				Doors[v]["Purchasable"] = v.Settings.Purchasable.Value
+				Doors[v]["Debounce"] = false
 			end
 		end)
 	end
@@ -91,16 +93,24 @@ end
 local function doorHandler(player, promptPart)
 	if promptPart.Name == "DoorBase" then
 		local doors, doorPrompt = getAllowedDoors(player)
+		local door = promptPart.Parent.Parent
 		if table.find(doorPrompt, promptPart) and (player.Character.HumanoidRootPart.Position.Magnitude - promptPart.Position.Magnitude) < 15 then
-			local door = doors[table.find(doorPrompt, promptPart)]
-			if door.DoorStatus.Action.Value == "Open" then
-				door.DoorStatus.Action.Value = "Close"
-				door.Anim.DoorBase.HingeConstraint.TargetAngle = 90
-				door.Open:Play()
-			else
-				door.DoorStatus.Action.Value = "Open"
-				door.Anim.DoorBase.HingeConstraint.TargetAngle = 0
-				door.Close:Play()
+			if Doors[door]["Debounce"] == false then
+				local door = doors[table.find(doorPrompt, promptPart)]
+				Doors[door]["Debounce"] = true
+				if door.DoorStatus.Action.Value == "Open" then
+					door.Anim.DoorBase.HingeConstraint.TargetAngle = 90
+					door.Open:Play()
+					door.DoorStatus.Action.Value = "Close"
+					Utils.Hold(debounceTime)
+					Doors[door]["Debounce"] = false
+				else
+					door.DoorStatus.Action.Value = "Open"
+					door.Anim.DoorBase.HingeConstraint.TargetAngle = 0
+					door.Close:Play()
+					Utils.Hold(debounceTime)
+					Doors[door]["Debounce"] = false
+				end
 			end
 		else
 			player:Kick("You have been kicked for potentially being an exploiter. If you think this was a mistake, contact a developer.")

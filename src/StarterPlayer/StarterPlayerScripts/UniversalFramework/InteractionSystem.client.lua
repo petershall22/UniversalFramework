@@ -17,7 +17,7 @@ local function initialise()
 	local doors, promptPart = InteractionService:GetAllowedDoors(player)
 	for i, v in doors do
 		local interactKeybind = UniversalFramework.Utility.Keybind:InvokeServer("DoorInteract")
-		local clone = script.DoorInteraction:Clone()
+		local clone = script.Doors.DoorInteraction:Clone()
 		clone.ActionText = string.format("%s %s", v.DoorStatus.Action.Value, v.Name)
 		clone.KeyboardKeyCode = Enum.KeyCode[interactKeybind]
 		clone.Parent = promptPart[i]
