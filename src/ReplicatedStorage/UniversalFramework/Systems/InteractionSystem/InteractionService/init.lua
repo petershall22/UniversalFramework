@@ -15,7 +15,7 @@ local interactionService = Knit.CreateService {
 	Name = "InteractionService"
 }
 
-local DoorLocation = workspace:WaitForChild("Doors")
+local DoorLocation = workspace.UniversalFramework:WaitForChild("Doors")
 
 local function changePerms(player, playerChange, permission) -- player, playerChange, {["Open"] = true}
 	for i, v in Doors do
