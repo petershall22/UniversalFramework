@@ -11,6 +11,7 @@ local RunService = game:GetService("RunService")
 
 -- Camera Variables
 local RenderStepped;
+local cameraCycler;
 local Camera = workspace.CurrentCamera
 local Mouse = player:GetMouse()
 local MovementDivide = 700
@@ -29,6 +30,12 @@ local click = gui.Click
 local selectionFrameY = topbarFrame.Selection.Position.Y.Scale
 local hoverEffectInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local selectionInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+
+-- Devlogs
+local devlogPreview = homeFrame.DevlogPreview
+local devlogViewing = false
+local devlogCycleWait = 5
+local devlogCycler;
 
 -- Functions
 local function hoverEffect(object)
@@ -68,24 +75,50 @@ local function coreGuiSet(arg)
     game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu, arg)
 end
 
+local function devlogHandler()
+    local cards = UniversalFramework.Utility.Devlogs:InvokeServer()
+    devlogCycler = coroutine.create(function()
+        while task.wait() do
+            if devlogViewing == false then
+                for i, currentCard in cards do
+                    local fadeOut = TweenService:Create(devlogPreview.Image.ImageLabel, transitionInfo, {ImageTransparency = 1})
+                    local fadeIn = TweenService:Create(devlogPreview.Image.ImageLabel, transitionInfo, {ImageTransparency = 0})
+                    devlogPreview.Image.ImageLabel.Image = currentCard["image"]
+                    devlogPreview.Title.Text = currentCard["title"]
+                    fadeIn:Play()
+                    Utils.Hold(transitionTime/2)
+                    Utils.Hold(devlogCycleWait)
+                    fadeOut:Play()
+                    Utils.Hold(transitionTime/2)
+                end
+            end
+        end
+    end)
+    coroutine.resume(devlogCycler)
+end
+
 local function intialise()
     local cameras = workspace.UniversalFramework:WaitForChild("MenuCameras")
     coreGuiSet(false)
-    while homeActive do
-        for i, cameraPart in cameras:GetChildren() do
-            cameraFunctionality(cameraPart.CFrame)
-            Utils.Hold(pauseTime)
-            local fadeIn = TweenService:Create(gui.Transition, transitionInfo, {BackgroundTransparency = 0})
-            local fadeOut = TweenService:Create(gui.Transition, transitionInfo, {BackgroundTransparency = 1})
-            fadeIn:Play()
-            fadeIn.Completed:Connect(function()
-                Utils.Hold(1)
-                fadeOut:Play()
-            end)
-            Utils.Hold(transitionTime/2)
-            cameraFunctionality(false)
+    devlogHandler()
+    cameraCycler = coroutine.create(function()
+        while homeActive do      
+            for i, cameraPart in cameras:GetChildren() do
+                cameraFunctionality(cameraPart.CFrame)
+                Utils.Hold(pauseTime)
+                local fadeIn = TweenService:Create(gui.Transition, transitionInfo, {BackgroundTransparency = 0})
+                local fadeOut = TweenService:Create(gui.Transition, transitionInfo, {BackgroundTransparency = 1})
+                fadeIn:Play()
+                fadeIn.Completed:Connect(function()
+                    Utils.Hold(1)
+                    fadeOut:Play()
+                end)
+                Utils.Hold(transitionTime/2)
+                cameraFunctionality(false)
+            end
         end
-    end
+    end)
+    coroutine.resume(cameraCycler)
 end
 
 local function changeScreen(button)
@@ -94,6 +127,11 @@ local function changeScreen(button)
     local tween = TweenService:Create(topbarFrame.Selection, selectionInfo, {Position = pos})
     tween:Play()
     click:Play()
+end
+
+local function play()
+    coroutine.close(cameraCycler)
+    coroutine.close(devlogCycler)
 end
 
 -- Topbar Buttons
