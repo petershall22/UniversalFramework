@@ -100,7 +100,7 @@ function Utils.descendantsFadeInTween(object, ignoreFrames, ignoreImages, transi
     end
 end
 
-function Utils.descendantsFadeOutTween(object, ignoreFrames, ignoreImages, transitionInfo) --FIXME: BOTTOM BAR STORE NOT WORKING
+function Utils.descendantsFadeOutTween(object, ignoreFrames, ignoreImages, transitionInfo) 
     for i, v in object:GetDescendants() do
         if v:IsA("TextLabel") then
             local tween = TweenService:Create(v, transitionInfo, {TextTransparency = 1})

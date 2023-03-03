@@ -33,7 +33,7 @@ local selectionInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirec
 local gameVer = UniversalFramework.Utility.GameVersion:InvokeServer()
 
 -- Devlogs
-local cards = UniversalFramework.Utility.Devlogs:InvokeServer()
+local cards, devlogAmount = UniversalFramework.Utility.Devlogs:InvokeServer()
 local devlogPreview = homeFrame.DevlogPreview
 local devlogFrame = screensFrame.Devlog
 local devlogViewing = false
@@ -47,8 +47,13 @@ local devProducts = {}
 local storeFrame = screensFrame.Store
 local storeSelectionBar = storeFrame.SelectionBar
 local storeButtons = storeSelectionBar.Buttons
-local storeBottomBar = storeFrame.BottomBar
-local currentStoreFrame = storeBottomBar.All
+local storeItems = storeFrame.Items
+local currentStoreFrame = storeItems.All
+
+-- Debounces
+local storeDebounce = false
+local changeScreenDebounce = false
+local devlogDisappearing = false
 
 local ignoreFrames = {homeFrame.Buttons, devlogPreview.Image}
 local ignoreImages = {homeFrame.Buttons}
@@ -89,18 +94,36 @@ end
 
 -- START OF: HOME
 
-local function progressBar(object)
+local function findCard(title)
+    for i, v in cards do
+        if v["title"] == title then
+            return v
+        end
+    end
+end
+
+local function progressBar(object, step)
     coroutine.wrap(function()
-        object.State.Size = UDim2.new(0,0,1,0)
-        local fadeOut = TweenService:Create(object.State, transitionInfo, {BackgroundTransparency = 1})
-        local fadeIn = TweenService:Create(object.State, transitionInfo, {BackgroundTransparency = 0})
         local holdTime = (transitionTime/2) + devlogCycleWait
-        local tweenInfo = TweenInfo.new(holdTime, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-        local expandTween = TweenService:Create(object.State, tweenInfo, {Size = UDim2.new(1,0,1,0)})
-        fadeIn:Play()
+        if step == devlogAmount then
+            holdTime -= 1
+        end
+        local tweenInfo = TweenInfo.new(holdTime, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+        local expandTween = TweenService:Create(object.Progress.State, tweenInfo, {Size = UDim2.new(1,0,1,0)})
         expandTween:Play()
         expandTween.Completed:Wait()
-        fadeOut:Play()
+        if step == devlogAmount then
+            for i, bar in devlogPreview.ProgressBar:GetChildren() do
+                if bar:IsA("TextButton") then
+                    local fadeOut = TweenService:Create(bar.Progress.State, transitionInfo, {BackgroundTransparency = 1})
+                    fadeOut:Play()
+                    fadeOut.Completed:Connect(function()
+                        bar.Progress.State.Size = UDim2.new(0,0,1,0)
+                        bar.Progress.State.BackgroundTransparency = 0
+                    end)
+                end
+            end
+        end
     end)()
 end
 
@@ -126,14 +149,18 @@ end
 local function devlogPreviewHandler()
     devlogCycler = coroutine.create(function()
         while task.wait() do
-            for i, currentCard in cards do
+            local step = 0
+            for i, currentCard in ipairs(cards) do
+                step += 1
                 if currentScreen == homeFrame then
+                    local title = currentCard["title"]
+                    local currentBar = devlogPreview.ProgressBar:FindFirstChild(title)
                     local fadeOut = TweenService:Create(devlogPreview.Image.ImageLabel, transitionInfo, {ImageTransparency = 1})
                     local fadeIn = TweenService:Create(devlogPreview.Image.ImageLabel, transitionInfo, {ImageTransparency = 0})
                     devlogPreview.Image.ImageLabel.Image = currentCard["image"]
-                    devlogPreview.Title.Text = currentCard["title"]
+                    devlogPreview.Title.Text = title
                     fadeIn:Play()
-                    progressBar(devlogPreview.ProgressBar)
+                    progressBar(currentBar, step)
                     Utils.Hold(transitionTime/2, currentScreen, homeFrame, "~=")
                     Utils.Hold(devlogCycleWait, currentScreen, homeFrame, "~=")
                     fadeOut:Play()
@@ -146,27 +173,51 @@ local function devlogPreviewHandler()
 end
 
 local function devlogAppear(title, tween: boolean)
-    devlogViewing = true
-    -- Devlog Information
-    currentCard = cards[title]
-    local information = devlogFrame.ScrollingFrame.Frame
-    devlogFrame.Preview.Image = currentCard["image"]
-    information.Title.Text = currentCard["title"]
-    information.BriefDesc.Text = currentCard["briefDesc"]
-    information.Desc.Text = currentCard["desc"]
-    -- Tweening
-    if tween then
-        local tween = TweenService:Create(devlogFrame, transitionInfo, {BackgroundTransparency = 0.1})
-        Utils.descendantsFadeInTween(devlogFrame, ignoreFrames, ignoreImages, transitionInfo)
-        tween:Play()
+    if not devlogViewing then
+        devlogViewing = true
+        -- Devlog Information
+        currentCard = findCard(title)
+        local information = devlogFrame.ScrollingFrame.Frame
+        devlogFrame.Preview.Image = currentCard["image"]
+        information.Title.Text = currentCard["title"]
+        information.BriefDesc.Text = currentCard["briefDesc"]
+        information.Desc.Text = currentCard["desc"]
+        -- Tweening
+        if tween then
+            local tween = TweenService:Create(devlogFrame, transitionInfo, {BackgroundTransparency = 0.1})
+            Utils.descendantsFadeInTween(devlogFrame, ignoreFrames, ignoreImages, transitionInfo)
+            tween:Play()
+        end
     end
 end
 
 local function devlogDisappear()
-    local tween = TweenService:Create(devlogFrame, transitionInfo, {BackgroundTransparency = 1})
-    Utils.descendantsFadeOutTween(devlogFrame, ignoreFrames, ignoreImages, transitionInfo)
-    tween:Play()
-    devlogViewing = false
+    if devlogViewing and not devlogDisappearing then
+        devlogDisappearing = true
+        local tween = TweenService:Create(devlogFrame, transitionInfo, {BackgroundTransparency = 1})
+        Utils.descendantsFadeOutTween(devlogFrame, ignoreFrames, ignoreImages, transitionInfo)
+        tween:Play()
+        Utils.Hold(1)
+        devlogViewing = false
+        devlogDisappearing = false
+    end
+end
+
+local function setupDevlogBar()
+    for i, card in cards do
+        local clone = devlogPreview.BarTemplate:Clone()
+        clone.Active = true
+        clone.Parent = devlogPreview.ProgressBar
+        clone.Name = card["title"]
+        clone.Size = UDim2.new((1/devlogAmount),-5,1,0)
+        clone.Visible = true
+        clone.MouseButton1Down:Connect(function()
+            if not devlogViewing then
+                click:Play()
+                devlogAppear(clone.Name, true)
+            end
+        end)
+    end
 end
 
 -- END OF: HOME
@@ -174,14 +225,17 @@ end
 -- START OF: STORE
 
 local function changeStoreBar(button)
-    local screen = storeBottomBar:FindFirstChild(button.Name)
-    if screen ~= currentStoreFrame then
+    local screen = storeItems:FindFirstChild(button.Name)
+    if screen ~= currentStoreFrame and not storeDebounce then
+        storeDebounce = true
         moveSelection(storeSelectionBar.Selection, button)
         click:Play()
         screen.Visible = true
         Utils.descendantsFadeInTween(screen, ignoreFrames, ignoreImages, transitionInfo)
         Utils.descendantsFadeOutTween(currentStoreFrame, ignoreFrames, ignoreImages, transitionInfo)
         currentStoreFrame = screen
+        Utils.Hold(1)
+        storeDebounce = false
     end
 end
 
@@ -189,13 +243,16 @@ end
 
 local function changeScreen(button)
     local screen = screensFrame:FindFirstChild(button.Name)
-    if screen ~= currentScreen then
+    if screen ~= currentScreen and not changeScreenDebounce then
+        changeScreenDebounce = true
         moveSelection(topbarFrame.Selection, button)
         click:Play()
         screen.Visible = true
         Utils.descendantsFadeInTween(screen, ignoreFrames, ignoreImages, transitionInfo)
         Utils.descendantsFadeOutTween(currentScreen, ignoreFrames, ignoreImages, transitionInfo)
         currentScreen = screen
+        Utils.Hold(1)
+        changeScreenDebounce = false
     end
 end
 
@@ -203,6 +260,7 @@ local function intialise()
     local cameras = workspace.UniversalFramework:WaitForChild("MenuCameras")
     coreGuiSet(false)
     devlogPreviewHandler()
+    setupDevlogBar()
     cameraCycler = coroutine.create(function()
         while homeActive do      
             for i, cameraPart in cameras:GetChildren() do
@@ -270,14 +328,6 @@ devlogPreview.Button.MouseButton1Down:Connect(function()
 end)
 screensFrame.Devlog.Exit.MouseButton1Down:Connect(function ()
     devlogDisappear()
-end)
-
-devlogFrame.RightArrow.MouseButton1Down:Connect(function()
-    local index = table.find(cards, currentCard["title"])
-    print(cards, currentCard)
-end)
-devlogFrame.LeftArrow.MouseButton1Down:Connect(function()
-    
 end)
 
 -- Initialise

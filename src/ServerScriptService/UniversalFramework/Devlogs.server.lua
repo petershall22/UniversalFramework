@@ -19,16 +19,18 @@ end
 
 local function returnDevlogs()
     local cardInfos = {}
+    local amount = 0
     for i, v in devlogCards do
-        local title = v["name"]
-        cardInfos[title] = {}
+        cardInfos[i] = {}
+        local card = cardInfos[i]
         local split = string.split(v["desc"], "||")
-        cardInfos[title]["image"] = removeWhitespace(split[1])
-        cardInfos[title]["briefDesc"] = removeWhitespace(split[2])
-        cardInfos[title]["desc"] = removeWhitespace(split[3])
-        cardInfos[title]["title"] = v["name"]
+        card["image"] = removeWhitespace(split[1])
+        card["briefDesc"] = removeWhitespace(split[2])
+        card["desc"] = removeWhitespace(split[3])
+        card["title"] = v["name"]
+        amount = i
     end
-    return cardInfos
+    return cardInfos, amount
 end
 
 UniversalFramework.Utility.Devlogs.OnServerInvoke = returnDevlogs
