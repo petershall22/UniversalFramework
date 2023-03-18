@@ -1,10 +1,13 @@
 local UniversalFramework = game:GetService("ReplicatedStorage"):WaitForChild("UniversalFramework")
 local TrelloAPI = require(game.ServerScriptService.UniversalFramework.TrelloAPI)
-local devlogListID = TrelloAPI.BoardsAPI.GetListID("NscRXZhs", "Updates")
-local gameVerListID = TrelloAPI.BoardsAPI.GetListID("NscRXZhs", "Game Version")
+local boardID = "NscRXZhs"
+local devlogListID = TrelloAPI.BoardsAPI.GetListID(boardID, "Updates")
+local gameVerListID = TrelloAPI.BoardsAPI.GetListID(boardID, "Game Version")
+local rulesListID = TrelloAPI.BoardsAPI.GetListID(boardID, "Rules")
 local devlogCards = TrelloAPI.CardsAPI.GetCardsOnList(devlogListID)
 local gameVersion = TrelloAPI.CardsAPI.GetCardOnList(gameVerListID, "Current Game Version")
 
+print(devlogCards)
 
 local function removeWhitespace(string)
     string = string.gsub(string, "^%s+", "")
@@ -28,10 +31,16 @@ local function returnDevlogs()
         card["briefDesc"] = removeWhitespace(split[2])
         card["desc"] = removeWhitespace(split[3])
         card["title"] = v["name"]
+        card["labels"] = v["labels"]
         amount = i
     end
     return cardInfos, amount
 end
 
+local function returnRules()
+
+end
+
 UniversalFramework.Utility.Devlogs.OnServerInvoke = returnDevlogs
+UniversalFramework.Utility.Rules.OnServerInvoke = returnRules
 UniversalFramework.Utility.GameVersion.OnServerInvoke = returnGameVersion
