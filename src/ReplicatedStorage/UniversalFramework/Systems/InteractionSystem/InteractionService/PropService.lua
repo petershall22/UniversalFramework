@@ -2,6 +2,7 @@ local UniversalFramework = game:GetService("ReplicatedStorage"):WaitForChild("Un
 local Knit = require(UniversalFramework.Utility.KnitFramework.Knit)
 local Systems = UniversalFramework.Systems
 local Utils = require(UniversalFramework.Utility.FrameworkUtils)
+local PropFolder = workspace.UniversalFramework.Props
 
 local ownership = {}
 
@@ -10,20 +11,25 @@ local propService = Knit.CreateService {
 }
 
 function propService.Client:UpdateProp(player, object, objectCFrame)
-    if object:GetAttribute("CanInteract") == true and (object.Position - player.Character.HumanoidRootPart.Position).Magnitude < 20 then
+    if object:IsDescendantOf(PropFolder) then
         print(object)
         if ownership[object] == nil then
-            ownership[object] = player
-            object.Anchored = true
-            object.CanCollide = false
-            object.CFrame = objectCFrame
+            if (object.Position - player.Character.HumanoidRootPart.Position).Magnitude < 20  then
+                ownership[object] = player
+                object.Anchored = true
+                object.CanCollide = false
+                object.CFrame = objectCFrame
+            else 
+                Utils.KickExploiter(player) -- tried to pick up object too far away
+            end
         elseif ownership[object] == player then
             object.Anchored = true
             object.CanCollide = false
             object.CFrame = objectCFrame
+        else -- tried to pick up unowned object
+            Utils.KickExploiter(player)
         end
-    else
-        print((object.Position - player.Character.HumanoidRootPart.Position).Magnitude)
+    else -- tried to pick up object that is not a prop
         Utils.KickExploiter(player)
     end
 end

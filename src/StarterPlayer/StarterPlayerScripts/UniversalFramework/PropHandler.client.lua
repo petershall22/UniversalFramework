@@ -2,6 +2,7 @@ local UniversalFramework = game:GetService("ReplicatedStorage").UniversalFramewo
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Knit = require(UniversalFramework.Utility.KnitFramework.Knit)
+local PropFolder = workspace.UniversalFramework.Props
 local Systems = UniversalFramework.Systems
 
 local propService = Knit.GetService("PropService") 
@@ -32,9 +33,9 @@ UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
         if input.KeyCode == pickupKeyCode then
             if pickingObject == false then
                 object = mouse.Target
-                if object:IsA("MeshPart") or object:IsA("Part") then
+                if not object:IsA("Model") then
                     pickingObject = true
-                    if object:GetAttribute("CanInteract") == true and (object.Position - player.Character.HumanoidRootPart.Position).Magnitude < studsLimit and propService:CanPick(object) then
+                    if object:IsDescendantOf(PropFolder) and (object.Position - player.Character.HumanoidRootPart.Position).Magnitude < studsLimit and propService:CanPick(object) then
                         Systems.CameraSystem.ToggleFPS:Fire(true)
                         renderStepped = RunService.RenderStepped:Connect(pickupItem)
                     else
