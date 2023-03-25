@@ -5,6 +5,7 @@ local devlogListID = TrelloAPI.BoardsAPI.GetListID(boardID, "Updates")
 local gameVerListID = TrelloAPI.BoardsAPI.GetListID(boardID, "Game Version")
 local rulesListID = TrelloAPI.BoardsAPI.GetListID(boardID, "Rules")
 local devlogCards = TrelloAPI.CardsAPI.GetCardsOnList(devlogListID)
+local rulesCards = TrelloAPI.CardsAPI.GetCardsOnList(rulesListID)
 local gameVersion = TrelloAPI.CardsAPI.GetCardOnList(gameVerListID, "Current Game Version")
 
 print(devlogCards)
@@ -38,7 +39,19 @@ local function returnDevlogs()
 end
 
 local function returnRules()
-
+    local cardInfos = {}
+    local amount = 0
+    for i, v in rulesCards do
+        cardInfos[i] = {}
+        local card = cardInfos[i]
+        local split = string.split(v["desc"], "||")
+        card["image"] = removeWhitespace(split[1])
+        card["title"] = removeWhitespace(split[2])
+        card["desc"] = removeWhitespace(split[3])
+        card["team"] = v["name"]
+        amount = i
+    end
+    return cardInfos, amount
 end
 
 UniversalFramework.Utility.Devlogs.OnServerInvoke = returnDevlogs

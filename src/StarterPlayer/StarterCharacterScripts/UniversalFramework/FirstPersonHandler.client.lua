@@ -5,6 +5,7 @@ local Camera = game.Workspace.CurrentCamera;
 
 local FPMaximumDistance = 0.75; -- determining when character parts transparency is changed
 local ZOffsetDistance = -1 -- amount the camera is offsetted when in first person
+local toggled = false
 
 local function ChangeView(firstPerson)
 	if firstPerson then
@@ -24,7 +25,9 @@ local function ChangeView(firstPerson)
 	end
 end
 
-RunService.RenderStepped:Connect(function()
+local function onRenderStepped()
 	local isFirstPerson = ((Camera.CFrame.p - Camera.Focus.p).magnitude <= FPMaximumDistance)
 	ChangeView(isFirstPerson)
-end)
+end
+
+local renderStepped = RunService.RenderStepped:Connect(onRenderStepped)

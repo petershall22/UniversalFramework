@@ -85,6 +85,10 @@ function Utils.Hold(seconds: number, cond1, cond2, condition: string) -- accurat
 	repeat Heartbeat:Wait() until tick() - StartTime >= seconds or condMet
 end
 
+function Utils.KickExploiter(player)
+	player:Kick("You have been kicked for potentially being an exploiter. If you think this was a mistake, contact a developer.")
+end
+
 function Utils.repeatFunc(func, waitTime: number, stopTime: number)
 	local LastTime = tick()
 	local repeatFunction = RunService.Heartbeat:Connect(function()

@@ -9,6 +9,7 @@ local player = game.Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
 
 -- Camera Variables
 local RenderStepped = nil
@@ -56,6 +57,13 @@ local devlogCycler;
 local currentCard;
 local step;
 
+-- Rules
+
+local rulesCards, ruleAmount = UniversalFramework.Utility.Rules:InvokeServer()
+local rulesFrame = screensFrame.Rules
+local ruleContentFrame = rulesFrame.Block.ContentHolder
+local ruleButtonTemplate = rulesFrame.DocumentSelection.Template
+
 -- Store
 local storeFrame = screensFrame.Store
 local productHolder = storeFrame.ProductHolder
@@ -67,6 +75,10 @@ local infoFadedIn = false
 local currentInfo;
 local products = {}
 
+-- Credits
+local creditsFrame = screensFrame.Credits.Holder
+local creditTemplate = screensFrame.Credits.Template
+
 -- Debounces
 local storeDebounce = false
 local changeScreenDebounce = false
@@ -76,7 +88,7 @@ local devlogDisappearing = false
 local ignoreFrames = {devlogPreview.MainPart.Image, productHolder.Filters}
 local ignoreImages = {homeFrame.Buttons}
 local ignoreButtons = {devlogPreview.Template}
-local ignoreList = {tabs, block.TagsHolder.Template, block.ContentHolder.Main.DoNotTouch, productInfo.Main.Owned, productInfo.Main.SubscriptionStatus}
+local ignoreList = {tabs, block.TagsHolder.Template, block.ContentHolder.Main.DoNotTouch, productInfo.Main.Owned, productInfo.Main.SubscriptionStatus, ruleButtonTemplate, ruleContentFrame.ScrollingFrame.DoNotTouch}
 
 -- START OF: UTILITY
 
@@ -122,7 +134,7 @@ local function selectEffect(chosenButton, currentButton, selectedSize, unselecte
 	currentButton.Font = Enum.Font.Gotham
 end
 
-local function hoverEffect(object)
+local function hoverEffect(object: ObjectValue)
 	local frameTween = TweenService:Create(object, hoverEffectInfo, {BackgroundColor3 = selectedButtonFrameColor})
 	local textTween = TweenService:Create(object.Button.TextLabel, hoverEffectInfo, {TextColor3 = selectedButtonTextColor})
 	local buttonTween = TweenService:Create(object.Button, hoverEffectInfo, {TextColor3 = Color3.fromRGB(0,0,0)})
@@ -139,7 +151,7 @@ local function hoverEffect(object)
 	textTween:Play()
 end
 
-local function endHover(object)
+local function endHover(object: ObjectValue)
 	local frameTween = TweenService:Create(object, hoverEffectInfo, {BackgroundColor3 = unselectedButtonFrameColor})
 	local textTween = TweenService:Create(object.Button.TextLabel, hoverEffectInfo, {TextColor3 = unselectedButtonTextColor})
 	local buttonTween = TweenService:Create(object.Button, hoverEffectInfo, {TextColor3 = Color3.fromRGB(255,255,255)})
@@ -154,6 +166,22 @@ local function endHover(object)
 	frameTween:Play()
 	buttonTween:Play()
 	textTween:Play()
+end
+
+local function showHoverInfo(object: ObjectValue)
+	object.HoverInfo.Visible = true
+	Utils.descendantsFadeInTween(object.HoverInfo, ignoreFrames, ignoreImages, ignoreButtons, hoverEffectInfo)
+	local tween = TweenService:Create(object.HoverInfo, hoverEffectInfo, {BackgroundTransparency = 0})
+	tween:Play()
+end
+
+local function hideHoverInfo(object: ObjectValue)
+	Utils.descendantsFadeOutTween(object.HoverInfo, hoverEffectInfo, ignoreImages, ignoreButtons, hoverEffectInfo)
+	local tween = TweenService:Create(object.HoverInfo, hoverEffectInfo, {BackgroundTransparency = 1})
+	tween:Play()
+	tween.Completed:Connect(function()
+		object.HoverInfo.Visible = false
+	end)
 end
 
 -- END OF: UTILITY
@@ -399,18 +427,10 @@ local function initialiseProducts()
 						showProduct(clone1.Name)
 					end)
 					clone1.Button.MouseEnter:Connect(function()
-						clone1.HoverInfo.Visible = true
-						Utils.descendantsFadeInTween(clone1.HoverInfo, ignoreFrames, ignoreImages, ignoreButtons, hoverEffectInfo)
-						local tween = TweenService:Create(clone1.HoverInfo, hoverEffectInfo, {BackgroundTransparency = 0})
-						tween:Play()
+						showHoverInfo(clone1)
 					end)
 					clone1.Button.MouseLeave:Connect(function()
-						Utils.descendantsFadeOutTween(clone1.HoverInfo, hoverEffectInfo, ignoreImages, ignoreButtons, hoverEffectInfo)
-						local tween = TweenService:Create(clone1.HoverInfo, hoverEffectInfo, {BackgroundTransparency = 1})
-						tween:Play()
-						tween.Completed:Connect(function()
-							clone1.HoverInfo.Visible = false
-						end)
+						hideHoverInfo(clone1)
 					end)
 				end
 				if type == Enum.InfoType.GamePass then
@@ -425,18 +445,10 @@ local function initialiseProducts()
 					showProduct(clone.Name)
 				end)
 				clone.Button.MouseEnter:Connect(function()
-					clone.HoverInfo.Visible = true
-					Utils.descendantsFadeInTween(clone.HoverInfo, ignoreFrames, ignoreImages, ignoreButtons, hoverEffectInfo)
-					local tween = TweenService:Create(clone.HoverInfo, hoverEffectInfo, {BackgroundTransparency = 0})
-					tween:Play()
+					showHoverInfo(clone)
 				end)
 				clone.Button.MouseLeave:Connect(function()
-					Utils.descendantsFadeOutTween(clone.HoverInfo, hoverEffectInfo, ignoreImages, ignoreButtons, hoverEffectInfo)
-					local tween = TweenService:Create(clone.HoverInfo, hoverEffectInfo, {BackgroundTransparency = 1})
-					tween:Play()
-					tween.Completed:Connect(function()
-						clone.HoverInfo.Visible = false
-					end)
+					hideHoverInfo(clone)
 				end)
 				--TODO: ADD CHECKBOX IF PRODUCT OWNED
 			end
@@ -448,6 +460,65 @@ local function initialiseProducts()
 end
 
 -- END OF: STORE
+
+-- START OF: RULES
+
+local function showTab(card)
+	ruleContentFrame.Parent.Title.Text = card["title"]
+	ruleContentFrame.ScrollingFrame.ClauseContent.Text = card["desc"]
+end
+
+local function initialiseRules()
+	for i, v in rulesCards do
+		local clone = ruleButtonTemplate:Clone()
+		clone.Name = v["title"]
+		clone.HoverInfo.Title.Text = v["team"]
+		clone.Parent = ruleButtonTemplate.Parent
+		clone.Preview.Image = v["image"]
+		clone.Visible = true
+		table.insert(ignoreList, clone.HoverInfo)
+		clone.Button.MouseEnter:Connect(function()
+			showHoverInfo(clone)
+		end)
+		clone.Button.MouseLeave:Connect(function()
+			hideHoverInfo(clone)
+		end)
+		clone.Button.MouseButton1Down:Connect(function()
+			showTab(v)
+		end)
+	end
+end
+
+-- END OF: RULES
+
+-- START OF: CREDITS
+
+local function initialiseCredits()
+	for _, title in creditsFrame:GetChildren() do
+		for _, user in title:GetChildren() do
+			if user:IsA("StringValue") then
+				local clone = creditTemplate:Clone()
+				local name = user.Name
+				local userId = Players:GetUserIdFromNameAsync(name)
+				clone.Name = name
+				clone.HoverInfo.Title.Text = name
+				clone.HoverInfo.Desc.Text = string.format("%s<br />%s", title.Name, user.Job.Value)
+				table.insert(ignoreList, clone.HoverInfo)
+				clone.MouseEnter:Connect(function()
+					showHoverInfo(clone)
+				end)
+				clone.MouseLeave:Connect(function()
+					hideHoverInfo(clone)
+				end)
+				clone.Parent = title
+				clone.Avatar.Image = Players:GetUserThumbnailAsync(userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+				clone.Visible = true
+			end
+		end
+	end
+end
+
+-- END OF: CREDITS
 
 local function createCycler()
 	local cameras = workspace.UniversalFramework:WaitForChild("MenuCameras")
@@ -486,6 +557,11 @@ local function homeCamera()
 	coroutine.resume(cameraCycler)
 end
 
+local function endHomeCamera()
+	gui.homeActive.Value = false
+	coroutine.close(cameraCycler)
+end
+
 local function changeScreen(button)
 	local screen = screensFrame:FindFirstChild(button.Name)
 	if screen ~= currentScreen and not changeScreenDebounce then
@@ -495,8 +571,7 @@ local function changeScreen(button)
 		selectEffect(button, topbarButtons:FindFirstChild(currentScreen.Name), selectedTopbarSize, unselectedTopbarSize)
 		click:Play()
 		if screen == storeFrame then -- Manages transitioning from home screen to other screens
-			gui.homeActive.Value = false
-			coroutine.close(cameraCycler)
+			endHomeCamera()
 		else
 			gui.homeActive.Value = true
 			fadeIn:Play()
@@ -557,7 +632,7 @@ local function changeScreen(button)
 				end
 			end
 		else
-			Utils.descendantsFadeInTween(screen, ignoreFrames, ignoreImages, ignoreButtons, transitionInfo)
+			Utils.descendantsFadeInTween(screen, ignoreFrames, ignoreImages, ignoreButtons, transitionInfo, ignoreList)
 		end
 		Utils.Hold(1)
 		changeScreenDebounce = false
@@ -565,11 +640,13 @@ local function changeScreen(button)
 end
 
 local function intialise()
+	initialiseRules()
+	initialiseCredits()
 	homeCamera()
 	coreGuiSet(false)
 	devlogPreviewHandler()
 	setupDevlogBar()
-	initialiseProducts()
+	initialiseProducts() -- YIELDS
 	homeFrame.VersionNumber.Text = gameVer
 end
 

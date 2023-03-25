@@ -19,6 +19,7 @@ local OTSEnabled 		= false
 local lockRotation 		= UniversalFramework.Configuration.CameraSystem:GetAttribute("LockRotation")
 local debounce 			= false
 local firstPersonEnabled = false
+local firstPersonToggled = false
 local moving			= false
 local heartbeat;
 
@@ -88,11 +89,17 @@ function SetZoom(input,other)
 			ZOOM = math.clamp(ZOOM+ZOOMincr,ZOOMlower,ZOOMupper)
 		end
 		if ZOOM == ZOOMlower then
-			if dt > 0 and OTSEnabled then
+			if firstPersonToggled then
 				firstPerson(true)
-			elseif dt < 0 and firstPersonEnabled then
-				firstPerson(false)
+			else
+				if dt > 0 and OTSEnabled then
+					firstPerson(true)
+				elseif dt < 0 and firstPersonEnabled then
+					firstPerson(false)
+				end
 			end
+		elseif firstPersonToggled then
+			firstPerson(true)
 		end
 	end
 end
@@ -210,8 +217,8 @@ UIS.InputBegan:Connect(function(input, gameProcessedEvent)
 	local changeShoulderKeybind = UniversalFramework.Utility.Keybind:InvokeServer("ChangeShoulder")
 	local unlockCharKeybind = UniversalFramework.Utility.Keybind:InvokeServer("UnlockCharacter")
 	local FPSKeybind = UniversalFramework.Utility.Keybind:InvokeServer("FirstPerson")
-	if input.KeyCode.Name:upper() == changeShoulderKeybind:upper() then
-		if not gameProcessedEvent then
+	if not gameProcessedEvent then
+		if input.KeyCode.Name:upper() == changeShoulderKeybind:upper() then
 			if direction == "l" then
 				XOffset = math.sqrt(XOffset^2)
 				direction = "r"
@@ -220,13 +227,16 @@ UIS.InputBegan:Connect(function(input, gameProcessedEvent)
 				direction = "l"
 			end
 		end
-	end
-	if input.KeyCode.Name:upper() == unlockCharKeybind:upper() then
-		if not gameProcessedEvent then
+		if input.KeyCode.Name:upper() == unlockCharKeybind:upper() then
 			heartbeat:Disconnect()
 			debounce = true
 		end
 	end
+end)
+
+game.ReplicatedStorage.UniversalFramework.Systems.CameraSystem.ToggleFPS.Event:Connect(function(enabled)
+	firstPersonToggled = enabled
+	firstPerson(true)
 end)
 
 UIS.InputEnded:Connect(function(input, gameProcessedEvent)
